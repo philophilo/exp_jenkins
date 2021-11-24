@@ -1,0 +1,52 @@
+version: '2.4'
+
+services:
+
+  docker:
+    container_name: jenkins-docker
+    image: docker:dind
+    privileged: true
+    networks:
+      - jenkins
+    environment:
+      DOCKER_TLS_CERTDIR: $ENV_DOCKER_TLS_CERTDIR
+    volumes:
+      - jenkins-docker-certs:/certs/client
+      - jenkins-data:/var/jenkins_home
+    ports:
+      - 2376:2376
+
+  jenkins:
+    image: philophilo/jenkins-docker:1.0
+    build:
+      context: ../
+      dockerfile: docker/Dockerfile
+    restart: always
+    container_name: jenkins
+    depends_on:
+      - docker
+    volumes:
+      - jenkins-data:/var/jenkins_home
+      - jenkins-docker-certs:/certs/client:ro
+      - /var/run/docker.sock:/var/run/docker.sock
+    ports:
+      - 8080:8080
+      - 50000:50000
+    environment:
+      DOCKER_HOST: $ENV_DOCKER_HOST
+      DOCKER_CERT_PATH: $ENV_DOCKER_CERT_PATH
+      DOCKER_TLS_VERIFY: $ENV_DOCKER_TLS_VERIFY
+    tty: true
+    stdin_open: true
+    networks:
+      - jenkins
+
+networks:
+  jenkins:
+    driver: bridge
+
+volumes:
+  jenkins-data:
+    driver: local
+  jenkins-docker-certs:
+    driver: local
